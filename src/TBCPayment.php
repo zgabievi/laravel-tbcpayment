@@ -28,7 +28,7 @@ class TBCPayment
     {
         $client_ip = request()->ip();
         $language = $this->language($lang);
-        $currency = config('payment.currency');
+        $currency = config('tbcpayment.currency');
 
         $this->post_fields = "command=v&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=SMS";
         return $this->parse($this->process());
@@ -86,7 +86,7 @@ class TBCPayment
     {
         $client_ip = request()->ip();
         $language = $this->language($lang);
-        $currency = config('payment.currency');
+        $currency = config('tbcpayment.currency');
 
         $this->post_fields = "command=a&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=DMS";
         return $this->parse($this->process());
@@ -104,7 +104,7 @@ class TBCPayment
     function authorization(string $txn_id, int $amount, string $description): object
     {
         $client_ip = request()->ip();
-        $currency = config('payment.currency');
+        $currency = config('tbcpayment.currency');
 
         $this->post_fields = "command=t&trans_id={$txn_id}&currency={$currency}&amount={$amount}&client_ip_addr={$client_ip}&description={$description}&msg_type=DMS";
         return $this->parse($this->process());
@@ -155,7 +155,7 @@ class TBCPayment
     {
         $client_ip = request()->ip();
         $language = $this->language($lang);
-        $currency = config('payment.currency');
+        $currency = config('tbcpayment.currency');
         $expiry = $expiration ?: now()->addYear()->format('my');
 
         $this->post_fields = "command=z&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=SMS&biller_client_id={$biller_id}&perspayee_expiry={$expiry}&perspayee_gen=1";
@@ -176,7 +176,7 @@ class TBCPayment
     {
         $client_ip = request()->ip();
         $language = $this->language($lang);
-        $currency = config('payment.currency');
+        $currency = config('tbcpayment.currency');
         $expiry = $expiration ?: now()->addYear()->format('my');
 
         $this->post_fields = "command=p&amount=0&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=AUTH&biller_client_id={$biller_id}&perspayee_expiry={$expiry}&perspayee_gen=1";
@@ -195,7 +195,7 @@ class TBCPayment
     function executeSubscription(string $biller_id, int $amount, string $description): object
     {
         $client_ip = request()->ip();
-        $currency = config('payment.currency');
+        $currency = config('tbcpayment.currency');
 
         $this->post_fields = "command=e&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&biller_client_id={$biller_id}";
         return $this->parse($this->process());
@@ -223,9 +223,9 @@ class TBCPayment
      */
     protected function language(string $lang = null): string
     {
-        $language = $lang ? strtoupper($lang) : config('payment.language');
+        $language = $lang ? strtoupper($lang) : config('tbcpayment.language');
         $language = $language === 'KA' ? 'GE' : $language;
-        $language = in_array($language, ['GE', 'EN']) ? $language : config('payment.language');
+        $language = in_array($language, ['GE', 'EN']) ? $language : config('tbcpayment.language');
 
         return $language;
     }
@@ -252,7 +252,7 @@ class TBCPayment
         $result = curl_exec($curl);
         $info = curl_getinfo($curl);
 
-        if (config('payment.debug')) {
+        if (config('tbcpayment.debug')) {
             Log::debug($result);
             Log::debug($info);
         }
