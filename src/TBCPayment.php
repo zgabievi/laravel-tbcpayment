@@ -247,7 +247,7 @@ class TBCPayment
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_TIMEOUT, 120);
         curl_setopt($curl, CURLOPT_SSLCERT, storage_path(config('tbcpayment.cert_path')));
-        curl_setopt($curl, CURLOPT_SSLKEYPASSWD, config('payment.password'));
+        curl_setopt($curl, CURLOPT_SSLKEYPASSWD, config('tbcpayment.password'));
         curl_setopt($curl, CURLOPT_URL, config('tbcpayment.url'));
         $result = curl_exec($curl);
         $info = curl_getinfo($curl);
