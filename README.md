@@ -1,3 +1,5 @@
+[![laravel-tbcpayment](https://banners.beyondco.de/TBC%20Payment.jpeg?theme=light&packageName=zgabievi%2Flaravel-tbcpayment&pattern=topography&style=style_1&description=TBC+Payment+integration+for+Laravel&md=1&showWatermark=0&fontSize=100px&images=cash)](https://github.com/zgabievi/laravel-tbcpayment)
+
 # TBC Payment integration for Laravel
 
 [![Packagist](https://img.shields.io/packagist/v/zgabievi/laravel-tbcpayment.svg)](https://packagist.org/packages/zgabievi/laravel-tbcpayment)
