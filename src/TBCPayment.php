@@ -114,14 +114,15 @@ class TBCPayment
      * Refund before day is closed
      *
      * @param string $txn_id
+     * @param int $amount
      * @return object
      * @throws PaymentProcessException
      */
-    function reverse(string $txn_id): object
+    function reverse(string $txn_id, int $amount): object
     {
         $txn_id = urlencode($txn_id);
 
-        $this->post_fields = "command=r&trans_id={$txn_id}";
+        $this->post_fields = "command=r&trans_id={$txn_id}&amount={$amount}";
         return $this->parse($this->process());
     }
 
