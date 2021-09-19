@@ -157,7 +157,7 @@ class TBCPayment
         $client_ip = request()->ip();
         $language = $this->language($lang);
         $currency = config('tbcpayment.currency');
-        $expiry = $expiration ?: now()->addYear()->format('my');
+        $expiry = $expiration ?: now()->addYears(10)->format('my');
 
         $this->post_fields = "command=z&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=SMS&biller_client_id={$biller_id}&perspayee_expiry={$expiry}&perspayee_gen=1";
         return $this->parse($this->process());
@@ -178,7 +178,7 @@ class TBCPayment
         $client_ip = request()->ip();
         $language = $this->language($lang);
         $currency = config('tbcpayment.currency');
-        $expiry = $expiration ?: now()->addYear()->format('my');
+        $expiry = $expiration ?: now()->addYears(10)->format('my');
 
         $this->post_fields = "command=p&amount=0&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=AUTH&biller_client_id={$biller_id}&perspayee_expiry={$expiry}&perspayee_gen=1";
         return $this->parse($this->process());
