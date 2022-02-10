@@ -9,6 +9,7 @@
 ## Documentation
 
 > Docs for v0.9.0 coming soon
+> 
 > For older Laravel versions use v0.3.0
 
 ## License
