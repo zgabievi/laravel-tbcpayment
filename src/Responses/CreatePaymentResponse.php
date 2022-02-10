@@ -105,7 +105,7 @@ class CreatePaymentResponse extends Response
 		$currency = $this->json('currency');
 
 		$this->payId = $this->json('payId');
-		$this->status = $this->json('status');
+		$this->status = PaymentStatus::from($this->json('status'));
 		$this->currency = $currency ? Currency::from($currency) : null;
 		$this->amount = $this->json('amount');
 		$this->links = Collection::make($this->json('links', []))->map(fn(array $link) => new Link($link));
