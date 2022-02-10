@@ -1,42 +1,40 @@
 {
-    "name": "zgabievi/laravel-tbcpayment",
-    "description": "TBC Payment integration for Laravel",
-    "type": "project",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Zura Gabievi",
-            "email": "zura.gabievi@gmail.com"
-        }
-    ],
-    "autoload": {
-        "psr-4": {
-            "Zorb\\TBCPayment\\": "src/"
-        }
-    },
-    "require": {
-        "php": "^7.2",
-        "illuminate/config": "^6.0|^7.0|^8.0",
-        "illuminate/database": "^6.0|^7.0|^8.0",
-        "illuminate/support": "^6.0|^7.0|^8.0",
-        "bensampo/laravel-enum": "^1.38|^3.0"
-    },
-    "require-dev": {
-        "ext-curl": "*"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Zorb\\TBCPayment\\TBCPaymentServiceProvider"
-            ],
-            "aliases": {
-                "TBCPayment": "Zorb\\TBCPayment\\Facades\\TBCPayment"
-            }
-        }
-    },
-    "config": {
-        "sort-packages": true
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+  "name": "zgabievi/laravel-tbcpayment",
+  "description": "TBC Payment integration for Laravel",
+  "type": "project",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Zura Gabievi",
+      "email": "zura.gabievi@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Zorb\\TBCPayment\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^8.1",
+    "ext-curl": "*",
+    "illuminate/config": "^9.0",
+    "illuminate/http": "^9.0",
+    "illuminate/support": "^9.0",
+    "symfony/http-foundation": "^6.0"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Zorb\\TBCPayment\\TBCPaymentServiceProvider"
+      ],
+      "aliases": {
+        "TBCPayment": "Zorb\\TBCPayment\\Facades\\TBCPayment"
+      }
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
 }

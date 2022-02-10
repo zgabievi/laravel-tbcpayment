@@ -1,34 +1,33 @@
 <?php
 
 return [
-
     /**
      * This value decides to log or not to log requests.
      */
     'debug' => env('TBC_PAYMENT_DEBUG', false),
 
-    /**
-     * Payment url provided by bank
-     */
-    'url' => env('TBC_PAYMENT_URL', 'https://ecommerce.ufc.ge:18443/ecomm2/MerchantHandler'),
+	/**
+	 * API Url for tbc payment operations.
+	 */
+	'api_url' => env('TBC_PAYMENT_API_URL', 'https://api.tbcbank.ge/v1/tpay/'),
+
+	/**
+	 * API Key from TBC developers page.
+	 */
+	'api_key' => env('TBC_PAYMENT_API_KEY'),
 
     /**
-     * Certificate path in storage folder
+     * Minutes to live for access token cache.
      */
-    'cert_path' => env('TBC_PAYMENT_CERT_PATH', 'app/tbc.pem'),
+    'token_ttl' => env('TBC_PAYMENT_TOKEN_TTL', 1440),
 
     /**
-     * TBC certificate password
+     * Client ID from TBC developers page.
      */
-    'password' => env('TBC_PAYMENT_CERT_PASSWORD'),
+    'client_id' => env('TBC_PAYMENT_CLIENT_ID'),
 
     /**
-     * Currency for tbc payment
+     * Client secret from TBC developers page.
      */
-    'currency' => env('TBC_PAYMENT_CURRENCY', 981),
-
-    /**
-     * Default language for tbc payment
-     */
-    'language' => env('TBC_PAYMENT_LANGUAGE', 'EN'),
+    'client_secret' => env('TBC_PAYMENT_CLIENT_SECRET'),
 ];

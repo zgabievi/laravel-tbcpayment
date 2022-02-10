@@ -2,287 +2,162 @@
 
 namespace Zorb\TBCPayment;
 
-use Zorb\TBCPayment\Exceptions\PaymentProcessException;
-use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
+use Zorb\TBCPayment\Responses\CompletePreAuthorizedPaymentResponse;
+use Zorb\TBCPayment\Responses\ExecuteRecurringPaymentResponse;
+use Zorb\TBCPayment\Responses\DeleteRecurringPaymentResponse;
+use Zorb\TBCPayment\Responses\GetAccessTokenResponse;
+use Zorb\TBCPayment\Responses\GetPaymentDetailsResponse;
+use Zorb\TBCPayment\Responses\CreatePaymentResponse;
+use Zorb\TBCPayment\Responses\CancelPaymentResponse;
+use Zorb\TBCPayment\Responses\ErrorResponse;
+use Zorb\TBCPayment\Models\RecurringPayment;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Zorb\TBCPayment\Models\Payment;
+use Carbon\Carbon;
+use Exception;
 
 class TBCPayment
 {
-    /**
-     * Post fields for curl request
-     *
-     * @var array
-     */
-    protected $post_fields;
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-get-checkout-access-token
+	 * @return GetAccessTokenResponse|ErrorResponse
+	 */
+	public function getAccessToken(): GetAccessTokenResponse | ErrorResponse
+	{
+		$response = Http::tpay()->asForm()
+			->post('access-token', [
+				'client_id' => Config::get('tbcpayment.client_id'),
+				'client_secret' => Config::get('tbcpayment.client_secret'),
+			]);
 
-    /**
-     * Generate transaction id
-     *
-     * @param int $amount
-     * @param string $description
-     * @param string|null $lang
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function generate(int $amount, string $description, string $lang = null): object
-    {
-        $client_ip = request()->ip();
-        $language = $this->language($lang);
-        $currency = config('tbcpayment.currency');
+		if ($response->ok()) {
+			return new GetAccessTokenResponse($response);
+		}
 
-        $this->post_fields = "command=v&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=SMS";
-        return $this->parse($this->process());
-    }
+		return new ErrorResponse($response);
+	}
 
-    /**
-     * Redirect to payment process
-     *
-     * @param string $txn_id
-     * @return View
-     */
-    function redirect(string $txn_id): View
-    {
-        return view('tbcpayment::redirect', compact('txn_id'));
-    }
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-create-checkout-payment
+	 * @param Payment $payment
+	 * @return CreatePaymentResponse|ErrorResponse
+	 * @throws Exception
+	 */
+	public function createPayment(Payment $payment): CreatePaymentResponse | ErrorResponse
+	{
+		$response = Http::tpay()->withToken($this->accessToken())->post('payments', $payment->toArray());
 
-    /**
-     * Check transaction status
-     *
-     * @param string|null $txn_id
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function check(string $txn_id = null): object
-    {
-        $client_ip = request()->ip();
-        $trans_id = urlencode($txn_id ?: request()->input('trans_id'));
+		if ($response->ok()) {
+			return new CreatePaymentResponse($response);
+		}
 
-        $this->post_fields = "command=c&trans_id={$trans_id}&client_ip_addr={$client_ip}";
-        return $this->parse($this->process());
-    }
+		return new ErrorResponse($response);
+	}
 
-    /**
-     * Close day to get money on your account
-     *
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function close(): object
-    {
-        $this->post_fields = 'command=b';
-        return $this->parse($this->process());
-    }
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-get-checkout-payment-details
+	 * @param string $payId
+	 * @return GetPaymentDetailsResponse|ErrorResponse
+	 * @throws Exception
+	 */
+	public function getPaymentDetails(string $payId): GetPaymentDetailsResponse | ErrorResponse
+	{
+		$response = Http::tpay()->withToken($this->accessToken())->get("payments/{$payId}");
 
-    /**
-     * Block amount of customer
-     *
-     * @param int $amount
-     * @param string $description
-     * @param string|null $lang
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function preAuthorization(int $amount, string $description, string $lang = null): object
-    {
-        $client_ip = request()->ip();
-        $language = $this->language($lang);
-        $currency = config('tbcpayment.currency');
+		if ($response->ok()) {
+			return new GetPaymentDetailsResponse($response);
+		}
 
-        $this->post_fields = "command=a&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=DMS";
-        return $this->parse($this->process());
-    }
+		return new ErrorResponse($response);
+	}
 
-    /**
-     * Use after pre-authorization to commit blocked amount
-     *
-     * @param string $txn_id
-     * @param int $amount
-     * @param string $description
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function authorization(string $txn_id, int $amount, string $description): object
-    {
-        $client_ip = request()->ip();
-        $currency = config('tbcpayment.currency');
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-cancel-checkout-payment
+	 * @param string $payId
+	 * @param float $amount
+	 * @return CancelPaymentResponse|ErrorResponse
+	 * @throws Exception
+	 */
+	public function cancelPayment(string $payId, float $amount): CancelPaymentResponse | ErrorResponse
+	{
+		$response = Http::tpay()->withToken($this->accessToken())->post("payments/{$payId}/cancel", compact('amount'));
 
-        $this->post_fields = "command=t&trans_id={$txn_id}&currency={$currency}&amount={$amount}&client_ip_addr={$client_ip}&description={$description}&msg_type=DMS";
-        return $this->parse($this->process());
-    }
+		if ($response->ok()) {
+			return new CancelPaymentResponse($response);
+		}
 
-    /**
-     * Refund before day is closed
-     *
-     * @param string $txn_id
-     * @param int $amount
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function reverse(string $txn_id, int $amount): object
-    {
-        $txn_id = urlencode($txn_id);
+		return new ErrorResponse($response);
+	}
 
-        $this->post_fields = "command=r&trans_id={$txn_id}&amount={$amount}";
-        return $this->parse($this->process());
-    }
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-complete-pre-authorized-payment
+	 * @param string $payId
+	 * @param float $amount
+	 * @return CompletePreAuthorizedPaymentResponse|ErrorResponse
+	 * @throws Exception
+	 */
+	public function completePreAuthorizedPayment(string $payId, float $amount): CompletePreAuthorizedPaymentResponse | ErrorResponse
+	{
+		$response = Http::tpay()->withToken($this->accessToken())->post("payments/{$payId}/completion", compact('amount'));
 
-    /**
-     * Refund after day is closed
-     *
-     * @param string $txn_id
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function refund(string $txn_id): object
-    {
-        $txn_id = urlencode($txn_id);
+		if ($response->ok()) {
+			return new CompletePreAuthorizedPaymentResponse($response);
+		}
 
-        $this->post_fields = "command=k&trans_id={$txn_id}";
-        return $this->parse($this->process());
-    }
+		return new ErrorResponse($response);
+	}
 
-    /**
-     * Start recurring subscription
-     *
-     * @param string $biller_id
-     * @param int $amount
-     * @param string $description
-     * @param string|null $expiration
-     * @param string|null $lang
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function startSubscription(string $biller_id, int $amount, string $description, string $expiration = null, string $lang = null): object
-    {
-        $client_ip = request()->ip();
-        $language = $this->language($lang);
-        $currency = config('tbcpayment.currency');
-        $expiry = $expiration ?: now()->addYears(10)->format('my');
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-execute-recurring-payment
+	 * @param RecurringPayment $payment
+	 * @return ExecuteRecurringPaymentResponse|ErrorResponse
+	 * @throws Exception
+	 */
+	public function executeRecurringPayment(RecurringPayment $payment): ExecuteRecurringPaymentResponse | ErrorResponse
+	{
+		$response = Http::tpay()->withToken($this->accessToken())->post('payments/execution', $payment->toArray());
 
-        $this->post_fields = "command=z&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=SMS&biller_client_id={$biller_id}&perspayee_expiry={$expiry}&perspayee_gen=1";
-        return $this->parse($this->process());
-    }
+		if ($response->ok()) {
+			return new ExecuteRecurringPaymentResponse($response);
+		}
 
-    /**
-     * Register recurring subscription without committing money
-     *
-     * @param string $biller_id
-     * @param string $description
-     * @param string|null $expiration
-     * @param string|null $lang
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function registerSubscription(string $biller_id, string $description, string $expiration = null, string $lang = null): object
-    {
-        $client_ip = request()->ip();
-        $language = $this->language($lang);
-        $currency = config('tbcpayment.currency');
-        $expiry = $expiration ?: now()->addYears(10)->format('my');
+		return new ErrorResponse($response);
+	}
 
-        $this->post_fields = "command=p&amount=0&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&language={$language}&msg_type=AUTH&biller_client_id={$biller_id}&perspayee_expiry={$expiry}&perspayee_gen=1";
-        return $this->parse($this->process());
-    }
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-delete-recurring-payment
+	 * @param string $recId
+	 * @return DeleteRecurringPaymentResponse|ErrorResponse
+	 * @throws Exception
+	 */
+	public function deleteRecurringPayment(string $recId): DeleteRecurringPaymentResponse | ErrorResponse
+	{
+		$response = Http::tpay()->withToken($this->accessToken())->post("payments/{$recId}/delete");
 
-    /**
-     * Execute already registered subscription to be repeated
-     *
-     * @param string $biller_id
-     * @param int $amount
-     * @param string $description
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function executeSubscription(string $biller_id, int $amount, string $description): object
-    {
-        $client_ip = request()->ip();
-        $currency = config('tbcpayment.currency');
+		if ($response->ok()) {
+			return new DeleteRecurringPaymentResponse($response);
+		}
 
-        $this->post_fields = "command=e&amount={$amount}&currency={$currency}&client_ip_addr={$client_ip}&description={$description}&biller_client_id={$biller_id}";
-        return $this->parse($this->process());
-    }
+		return new ErrorResponse($response);
+	}
 
-    /**
-     * Get credit from the bank
-     *
-     * @param string $txn_id
-     * @param int $amount
-     * @return object
-     * @throws PaymentProcessException
-     */
-    function credit(string $txn_id, int $amount): object
-    {
-        $this->post_fields = "command=g&trans_id={$txn_id}&amount={$amount}";
-        return $this->parse($this->process());
-    }
+	/**
+	 * @see https://developers.tbcbank.ge/docs/checkout-get-checkout-access-token
+	 * @return string
+	 * @throws Exception
+	 */
+	protected function accessToken(): string
+	{
+		$token_ttl = Config::get('tbcpayment.token_ttl', 1440);
 
-    /**
-     * Get language for each process
-     *
-     * @param string|null $lang
-     * @return string
-     */
-    protected function language(string $lang = null): string
-    {
-        $language = $lang ? strtoupper($lang) : config('tbcpayment.language');
-        $language = $language === 'KA' ? 'GE' : $language;
-        $language = in_array($language, ['GE', 'EN']) ? $language : config('tbcpayment.language');
+		$result = Cache::remember('laravel-tbcpayment.access_token', Carbon::now()->addMinutes($token_ttl), fn() => $this->getAccessToken());
 
-        return $language;
-    }
+		if (!$result?->accessToken) {
+			throw new Exception('You need to generate access token first.');
+		}
 
-    /**
-     * cURL process for each method
-     *
-     * @return string
-     * @throws PaymentProcessException
-     */
-    protected function process(): string
-    {
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_SSLVERSION, 0);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $this->post_fields);
-        curl_setopt($curl, CURLOPT_VERBOSE, 1);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 120);
-        curl_setopt($curl, CURLOPT_SSLCERT, storage_path(config('tbcpayment.cert_path')));
-        curl_setopt($curl, CURLOPT_SSLKEYPASSWD, config('tbcpayment.password'));
-        curl_setopt($curl, CURLOPT_URL, config('tbcpayment.url'));
-        $result = curl_exec($curl);
-        $info = curl_getinfo($curl);
-
-        if (config('tbcpayment.debug')) {
-            Log::debug($result);
-            Log::debug($info);
-        }
-
-        if (curl_errno($curl)) {
-            throw new PaymentProcessException(curl_error($curl));
-        }
-
-        curl_close($curl);
-
-        return $result;
-    }
-
-    /**
-     * Parse result from bank
-     *
-     * @param $data
-     * @return object
-     */
-    protected function parse($data): object
-    {
-        $params = explode(PHP_EOL, trim($data));
-        $result = [];
-
-        foreach ($params as $param) {
-            $parts = explode(':', $param);
-            $result[$parts[0]] = trim($parts[1]);
-        }
-
-        return (object)$result;
-    }
+		return $result->accessToken;
+	}
 }

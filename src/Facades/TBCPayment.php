@@ -7,13 +7,13 @@ use Illuminate\Support\Facades\Facade;
 
 class TBCPayment extends Facade
 {
-    /**
-     * Get the registered name of the component.
-     *
-     * @return string
-     */
-    protected static function getFacadeAccessor()
-    {
-        return TBCPaymentService::class;
-    }
+	/**
+	 * Get the registered name of the component.
+	 *
+	 * @return string
+	 */
+	protected static function getFacadeAccessor(): string
+	{
+		return TBCPaymentService::class;
+	}
 }
